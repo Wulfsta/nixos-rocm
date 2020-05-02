@@ -1,12 +1,12 @@
 { stdenv, fetchFromGitHub, fetchpatch, cmake, symlinkJoin, utillinux, which, git
-, openssl, buildPythonPackage, python, numpy, pyyaml, cffi, numactl, opencv3
+, openssl, buildPythonPackage, python, numpy, pyyaml, future, cffi, numactl, opencv3
 , lmdb, pkg-config
 , rocr, hip, openmp, rocrand, rocblas, rocfft, rocm-cmake, rccl, rocprim, hipcub
 , miopen, miopengemm, rocsparse, hipsparse, rocthrust, comgr
 , hcc
 , roctracer }:
 buildPythonPackage rec {
-  version = "1.4.0";
+  version = "1.5.0";
   pname = "pytorch";
   src = fetchFromGitHub {
     # owner = "ROCmSoftwarePlatform";
@@ -14,7 +14,7 @@ buildPythonPackage rec {
     repo = "pytorch";
 
     rev = "v${version}";
-    sha256 = "1gdglwrky4zq7w2zp9srrdqz8x2j89sv4n91x2m4c6b4fbj52gsr";
+    sha256 = "19qyrjd72mc0llcfn50av8ym05f2iwa38gv068wykji4ph7qjlv2";
 
     fetchSubmodules = true;
   };
@@ -44,7 +44,7 @@ buildPythonPackage rec {
     hipcub
     roctracer
   ];
-  propagatedBuildInputs = [ cffi numpy pyyaml ];
+  propagatedBuildInputs = [ cffi numpy pyyaml future ];
 
   preConfigure = ''
     export USE_ROCM=1
@@ -73,31 +73,16 @@ buildPythonPackage rec {
   doCheck = false;
 
   patches = [
-    ./no-hex-float-lit.patch
     ./protobuf-cmake-install.patch
     ./torch-python-lib-dirs.patch
     ./setup-lib-dirs.patch
     ./link-mcwamp.patch
     ./add-jit-srcs.patch
     ./hip-cmake.patch
-    ./throw_nccl_error_api.patch
     (fetchpatch {
       name = "field-accessors.patch";
       url = "https://github.com/pytorch/pytorch/commit/3a7ecd32eb7418e18146fe09dc9301076b5f0f17.patch";
       sha256 = "13rwyq5m8aqgjjxp4cdyjbbnbcni9z44p8zwvh3h86f9jqk1c12b";
-    })
-
-    # The next two patches are needed to build pytorch-1.4.0 with gcc-9.2.0
-    # See https://github.com/pytorch/pytorch/issues/32277
-    (fetchpatch {
-      name = "KernelTable-array.patch";
-      url = "https://patch-diff.githubusercontent.com/raw/pytorch/pytorch/pull/30332.patch";
-      sha256 = "1v9dwbhz3rdxcx6sz8y8j9n3bj6nqs78b1r8yg89yc15n6l4cqx2";
-    })
-    (fetchpatch {
-      name = "remove-LeftRight.patch";
-      url = "https://patch-diff.githubusercontent.com/raw/pytorch/pytorch/pull/30333.patch";
-      sha256 = "139413fl37h2fnil0cv99a67mqqnsh02k74b92by1qyr6pcfyg3q";
     })
   ];
 
@@ -113,6 +98,10 @@ buildPythonPackage rec {
   # PYTORCH_BUILD_VERSION = "1.1.0";
   PYTORCH_BUILD_NUMBER = 0;
 
+  #postBuild = ''
+  #  find . -name "*libtorch_global_deps*" -print 
+  #'';
+
   preFixup = ''
     function join_by { local IFS="$1"; shift; echo "$*"; }
     function strip2 {
@@ -122,12 +111,12 @@ buildPythonPackage rec {
       RP_NEW=$(join_by : ''${RP[@]:2})
       patchelf --set-rpath \$ORIGIN:''${RP_NEW} "$1"
     }
-
     for f in $(find ''${out} -regex '.*/\(lib\)?caffe2.*\.so')
     do
       strip2 $f
     done
     ln -s $out/bin $out/${python.sitePackages}/torch
+    ln -s $out/lib $out/${python.sitePackages}/torch/lib
   '';
 
 }
