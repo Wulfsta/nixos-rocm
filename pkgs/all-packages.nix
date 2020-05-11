@@ -449,11 +449,11 @@ with pkgs;
     opencl = self.rocm-opencl-runtime;
   };
 
-  tensorflow-rocm = python37Packages.callPackage ./development/libraries/tensorflow/bin.nix {
-    inherit (self) hcc hcc-unwrapped miopen-hip miopengemm rocrand
-                   rocfft rocblas rocr rccl cxlactivitylogger;
-    hip = self.hip;
-  };
+  #tensorflow-rocm = python37Packages.callPackage ./development/libraries/tensorflow/bin.nix {
+  #  inherit (self) hcc hcc-unwrapped miopen-hip miopengemm rocrand
+  #                 rocfft rocblas rocr rccl cxlactivitylogger;
+  #  hip = self.hip;
+  #};
 
   tf2PyPackages = python37.override {
     packageOverrides = self: super: {
@@ -472,7 +472,7 @@ with pkgs;
     };
   };
 
-  tensorflow2-rocm = self.tf2PyPackages.pkgs.callPackage ./development/libraries/tensorflow/bin2.nix {
+  tensorflow2-rocm = python37Packages.callPackage ./development/libraries/tensorflow/2 {
     inherit (self) hcc hcc-unwrapped miopen-hip miopengemm rocrand
                    rocfft rocblas rocr rccl cxlactivitylogger;
     hip = self.hip;
