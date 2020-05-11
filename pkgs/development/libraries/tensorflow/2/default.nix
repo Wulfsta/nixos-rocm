@@ -247,7 +247,7 @@ let
     #TF_CUDA_COMPUTE_CAPABILITIES = lib.concatStringsSep "," cudaCapabilities;
 
     TF_NEED_ROCM = 1;
-    ROCM_PATH = rocmtoolkit_joined;
+    ROCM_PATH = "${rocmtoolkit_joined}";
 
     postPatch = ''
       # https://github.com/tensorflow/tensorflow/issues/20919

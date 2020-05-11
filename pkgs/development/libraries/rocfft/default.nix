@@ -14,7 +14,7 @@ stdenv.mkDerivation rec {
 
   # Building this package is very RAM intensive: individual clang
   # processes use over 6GB of RAM.
-  enableParallelBuilding = false;
+  enableParallelBuilding = true;
   # CXXFLAGS = "-D__HIP_PLATFORM_HCC__ -D__HIP__";
 
   nativeBuildInputs = [ cmake rocm-cmake pkgconfig rocminfo ];
