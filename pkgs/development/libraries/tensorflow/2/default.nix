@@ -29,6 +29,7 @@
 # Darwin deps
 #, Foundation, Security
 # ROCm
+, config
 , hcc, hcc-unwrapped
 , hip, miopen-hip, miopengemm
 , rocrand, rocfft, rocblas, rocr, rccl, cxlactivitylogger
@@ -84,7 +85,7 @@ let
   tfFeature = x: if x then "1" else "0";
 
   version = "2.2.0";
-  variant = "-gpu";
+  variant = "-rocm";
   pname = "tensorflow${variant}";
 
   pythonEnv = python.withPackages (_:
@@ -247,7 +248,11 @@ let
     #TF_CUDA_COMPUTE_CAPABILITIES = lib.concatStringsSep "," cudaCapabilities;
 
     TF_NEED_ROCM = 1;
-    ROCM_PATH = "${rocmtoolkit_joined}";
+    #ROCM_PATH = "${rocmtoolkit_joined}";
+    ROCM_VERSION = "3.3.0";
+    #MIOPEN_VERSION = "";
+    ROCM_TOOLKIT_PATH = "${rocmtoolkit_joined}";
+    ROCM_AMDGPU_TARGETS = "${lib.strings.concatStringsSep ";" (config.rocmTargets or ["gfx803" "gfx900" "gfx906"])}";
 
     postPatch = ''
       # https://github.com/tensorflow/tensorflow/issues/20919
