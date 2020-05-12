@@ -130,13 +130,13 @@ let
       #  sha256 = "1n9ypbrx36fc1kc9cz5b3p9qhg15xxhq4nz6ap3hwqba535nakfz";
       #})
 
-      #(fetchpatch {
-      #  # Don't try to fetch things that don't exist
-      #  name = "prune-missing-deps.patch";
-      #  url = "https://github.com/tensorflow/tensorflow/commit/b39b1ed24b4814db27d2f748dc85c10730ae851d.patch";
-      #  sha256 = "1skysz53nancvw1slij6s7flar2kv3gngnsq60ff4lap88kx5s6c";
-      #  excludes = [ "tensorflow/cc/saved_model/BUILD" ];
-      #})
+      (fetchpatch {
+        # Don't try to fetch things that don't exist
+        name = "prune-missing-deps.patch";
+        url = "https://github.com/tensorflow/tensorflow/commit/b39b1ed24b4814db27d2f748dc85c10730ae851d.patch";
+        sha256 = "1skysz53nancvw1slij6s7flar2kv3gngnsq60ff4lap88kx5s6c";
+        excludes = [ "tensorflow/cc/saved_model/BUILD" ];
+      })
 
       ./lift-gast-restriction.patch
 
@@ -234,7 +234,7 @@ let
 
     TF_NEED_GCP = true;
     TF_NEED_HDFS = true;
-    #TF_ENABLE_XLA = tfFeature xlaSupport;
+    #TF_ENABLE_XLA = 0; #tfFeature xlaSupport;
 
     CC_OPT_FLAGS = " ";
 
@@ -311,7 +311,7 @@ let
       TF_SYSTEM_LIBS = null;
 
       # cudaSupport causes fetch of ncclArchive, resulting in different hashes
-      sha256 = "1gy4pz9kn30wb9c4a9584fibb88c3h38y3dqa99yw1lbsbyyi28c";
+      sha256 = "1sb5xbv99adrb38q8m8zlrjiwq68sfqfj63m0wy73c8j0sbajj74";
     };
 
     buildAttrs = {
@@ -353,7 +353,7 @@ let
       homepage = "http://tensorflow.org";
       license = licenses.asl20;
       maintainers = with maintainers; [ jyp abbradar wulfsta ];
-      platforms = with platforms; linux ++ darwin;
+      platforms = with platforms; linux;
       # The py2 build fails due to some issue importing protobuf. Possibly related to the fix in
       # https://github.com/akesandgren/easybuild-easyblocks/commit/1f2e517ddfd1b00a342c6abb55aef3fd93671a2b
       broken = !isPy3k;
