@@ -280,6 +280,7 @@ let
       mkdir -p "$PYTHON_LIB_PATH"
       # To avoid mixing Python 2 and Python 3
       unset PYTHONPATH
+      sed -e 's|/opt/rocm|${rocmtoolkit_joined}|' -i ./third_party/gpus/rocm_configure.bzl
     '';
 
     configurePhase = ''

@@ -63,6 +63,12 @@ stdenv.mkDerivation rec {
         -i CMakeLists.txt
   '';
 
+  preFixup = ''
+    mkdir $out/hip
+    ln -s $out/include $out/hip/include
+    ln -s $out/lib $out/hip/lib
+  '';
+
   postInstall = ''
     mkdir -p $out/share
     mv $out/lib/cmake $out/share/

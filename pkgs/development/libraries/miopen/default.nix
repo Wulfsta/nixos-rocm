@@ -18,6 +18,8 @@ stdenv.mkDerivation rec {
   cmakeFlags = [
     "-DCMAKE_PREFIX_PATH=${hcc};${hip};${clang-ocl}"
     "-DCMAKE_INSTALL_INCLUDEDIR=include"
+    #"-DCMAKE_INSTALL_INCLUDEDIR=miopen/include"
+    #"-DCMAKE_INSTALL_LIBDIR=miopen/lib"
     "-DMIOPEN_USE_ROCBLAS=ON"
     "-DBoost_USE_STATIC_LIBS=OFF"
     "-DMIOPEN_USE_MIOPENGEMM=ON"
@@ -48,5 +50,10 @@ stdenv.mkDerivation rec {
     sed '/add_dependencies(tidy miopen_tidy_inlining)/d' -i src/CMakeLists.txt
     sed -e 's/clang_tidy_check.*//' \
         -i speedtests/CMakeLists.txt
+  '';
+  preFixup = ''
+    mkdir $out/miopen
+    ln -s $out/include $out/miopen/include
+    ln -s $out/lib $out/miopen/lib
   '';
 }
