@@ -31,8 +31,8 @@
 # ROCm
 , config
 , hcc, hcc-unwrapped
-, hip, miopen-hip, miopengemm
-, rocrand, rocfft, rocblas, rocr, rccl, cxlactivitylogger
+, hip, hipcub, miopen-hip, miopengemm
+, rocrand, rocprim, rocfft, rocblas, rocr, rccl, cxlactivitylogger
 }:
 
 #assert cudaSupport -> nvidia_x11 != null
@@ -48,8 +48,8 @@ let
   rocmtoolkit_joined = symlinkJoin {
     name = "unsplit_rocmtoolkit";
     paths = [ hcc hcc-unwrapped
-              hip miopen-hip miopengemm
-              rocrand rocfft rocblas rocr rccl cxlactivitylogger ];
+              hip hipcub miopen-hip miopengemm
+              rocrand rocprim rocfft rocblas rocr rccl cxlactivitylogger ];
   };
 
   withTensorboard = pythonOlder "3.6";
@@ -124,11 +124,11 @@ let
       # Fixes for NixOS jsoncpp
       ../system-jsoncpp.patch
 
-      #(fetchpatch {
-      #  name = "backport-pr-18950.patch";
-      #  url = "https://github.com/tensorflow/tensorflow/commit/73640aaec2ab0234d9fff138e3c9833695570c0a.patch";
-      #  sha256 = "1n9ypbrx36fc1kc9cz5b3p9qhg15xxhq4nz6ap3hwqba535nakfz";
-      #})
+      (fetchpatch {
+        name = "backport-pr-18950.patch";
+        url = "https://github.com/tensorflow/tensorflow/commit/73640aaec2ab0234d9fff138e3c9833695570c0a.patch";
+        sha256 = "1n9ypbrx36fc1kc9cz5b3p9qhg15xxhq4nz6ap3hwqba535nakfz";
+      })
 
       (fetchpatch {
         # Don't try to fetch things that don't exist
@@ -299,7 +299,9 @@ let
       "--incompatible_no_support_tools_in_action_inputs=false"
     ];
     bazelBuildFlags = [
+      "--config=v2"
       "--config=opt" # optimize using the flags set in the configure phase
+      #"--cxxopt=-std=c++11"
       "--config=rocm"
     ]
     ++ lib.optionals (mklSupport) [ "--config=mkl" ];

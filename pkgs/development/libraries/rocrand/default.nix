@@ -28,6 +28,8 @@ stdenv.mkDerivation rec {
     mkdir -p $out/include $out/lib
     cp -rs $out/hiprand/include/* $out/include
     cp -rs $out/rocrand/include/* $out/include
+    cp -rs $out/hiprand/include/* $out/hiprand
+    cp -rs $out/rocrand/include/* $out/rocrand
     cp -rs $out/hiprand/lib/* $out/lib
     cp -rs $out/rocrand/lib/* $out/lib
     for f in $(find $out/lib/cmake -name '*.cmake'); do
