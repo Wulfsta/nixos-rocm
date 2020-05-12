@@ -252,7 +252,7 @@ let
     ROCM_VERSION = "3.3.0";
     #MIOPEN_VERSION = "";
     ROCM_TOOLKIT_PATH = "${rocmtoolkit_joined}";
-    ROCM_AMDGPU_TARGETS = "${lib.strings.concatStringsSep ";" (config.rocmTargets or ["gfx803" "gfx900" "gfx906"])}";
+    ROCM_AMDGPU_TARGETS = "${lib.strings.concatStringsSep "," (config.rocmTargets or ["gfx803" "gfx900" "gfx906"])}";
 
     postPatch = ''
       # https://github.com/tensorflow/tensorflow/issues/20919
