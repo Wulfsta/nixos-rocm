@@ -1,4 +1,4 @@
-{ stdenv, pkgs, bazel_0_29, buildBazelPackage, lib, fetchFromGitHub, fetchpatch, symlinkJoin
+{ stdenv, pkgs, bazel, buildBazelPackage, lib, fetchFromGitHub, fetchpatch, symlinkJoin
 , addOpenGLRunpath
 # Python deps
 , buildPythonPackage, isPy3k, isPy27, pythonOlder, pythonAtLeast, python
@@ -109,7 +109,7 @@ let
 
   bazel-build = buildBazelPackage {
     name = "${pname}-${version}";
-    bazel = bazel_0_29;
+    bazel = bazel; #bazel_0_29;
 
     src = fetchFromGitHub {
       owner = "tensorflow";
@@ -281,6 +281,9 @@ let
       # To avoid mixing Python 2 and Python 3
       unset PYTHONPATH
       sed -e 's|/opt/rocm|${rocmtoolkit_joined}|' -i ./third_party/gpus/rocm_configure.bzl
+      #bazel --batch --bazelrc=/dev/null version
+      rm .bazelversion
+      echo ${bazel.version} > .bazelversion
     '';
 
     configurePhase = ''
@@ -294,10 +297,10 @@ let
 
     hardeningDisable = [ "format" ];
 
-    bazelFlags = [
-      # temporary fixes to make the build work with bazel 0.27
-      "--incompatible_no_support_tools_in_action_inputs=false"
-    ];
+    #bazelFlags = [
+    #  # temporary fixes to make the build work with bazel 0.27
+    #  #"--incompatible_no_support_tools_in_action_inputs=false"
+    #];
     bazelBuildFlags = [
       "--config=v2"
       "--config=opt" # optimize using the flags set in the configure phase
