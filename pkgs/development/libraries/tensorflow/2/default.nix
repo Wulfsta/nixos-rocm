@@ -98,13 +98,13 @@ let
   #};
 
   # Needed for _some_ system libraries, grep INCLUDEDIR.
-  #includes_joined = symlinkJoin {
-  #  name = "tensorflow-deps-merged";
-  #  paths = [
-  #    pkgs.protobuf
-  #    jsoncpp
-  #  ];
-  #};
+  includes_joined = symlinkJoin {
+    name = "tensorflow-deps-merged";
+    paths = [
+      pkgs.protobuf
+      jsoncpp
+    ];
+  };
 
   tfFeature = x: if x then "1" else "0";
 
@@ -146,7 +146,7 @@ let
       # Work around https://github.com/tensorflow/tensorflow/issues/24752
       ../no-saved-proto.patch
       # Fixes for NixOS jsoncpp
-      #../system-jsoncpp.patch
+      ../system-jsoncpp.patch
       # Account for Intel's rebranding 
       #../bazel_workspace.patch
       #../protobuf_repo.patch
@@ -190,8 +190,8 @@ let
       # grpc
       sqlite
       openssl
-      #jsoncpp
-      #pkgs.protobuf
+      jsoncpp
+      pkgs.protobuf
       curl
       snappy
       flatbuffers
@@ -226,22 +226,22 @@ let
     #  # Not packaged in nixpkgs
     #  # "com_github_googleapis_googleapis"
     #  # "com_github_googlecloudplatform_google_cloud_cpp"
-    #  "com_google_protobuf"
-    #  "com_googlesource_code_re2"
+      "com_google_protobuf"
+      "com_googlesource_code_re2"
       "curl"
       "cython"
       "double_conversion"
       "flatbuffers"
-    #  "gast_archive"
+      "gast_archive"
     #  # Lots of errors, requires an older version
     #  # "grpc"
       "hwloc"
       "icu"
       "jpeg"
-    #  "jsoncpp_git"
+      "jsoncpp_git"
       "keras_applications_archive"
       "lmdb"
-    #  "nasm"
+      "nasm"
     #  # "nsync" # not packaged in nixpkgs
       "opt_einsum_archive"
       "org_sqlite"
@@ -255,7 +255,7 @@ let
       "zlib_archive"
     ];
 
-    INCLUDEDIR = "${rocmtoolkit_joined}/include";
+    INCLUDEDIR = "${includes_joined}/include";
 
     PYTHON_BIN_PATH = pythonEnv.interpreter;
 
