@@ -476,6 +476,13 @@ with pkgs;
     inherit (self) hcc hcc-unwrapped miopen-hip miopengemm rocrand
                    rocfft rocblas rocr rccl cxlactivitylogger;
     hip = self.hip;
+    #bazel = bazel.overrideAttrs (oldAttrs: rec {
+    #  version="2.0.0";
+    #  src = fetchurl {
+    #    url = "https://github.com/bazelbuild/bazel/releases/download/${version}/bazel-${version}-dist.zip";
+    #    sha256 = "1fvc7lakdczim1i99hrwhwx2w75afd3q9fgbhrx7i3pnav3a6kbj";
+    #  };
+    #});
   };
 
   pytorch-rocm = python37Packages.callPackage ./development/libraries/pytorch/default.nix {

@@ -1,0 +1,31 @@
+diff --exclude '*~' -ruN a/tensorflow/workspace.bzl b/tensorflow/workspace.bzl
+--- a/tensorflow/workspace.bzl
++++ b/tensorflow/workspace.bzl
+@@ -135,10 +135,10 @@
+     tf_http_archive(
+         name = "mkl_dnn",
+         build_file = clean_dep("//third_party/mkl_dnn:mkldnn.BUILD"),
+-        sha256 = "ed56652dd237deb86ee9bf102c18de5f2625c059e5ab1d7512c8dc01e316b694",
+-        strip_prefix = "mkl-dnn-0.21.2",
++        sha256 = "5897bfd0e321a761de0c57ba1dfe0ebc753cc0d8a18bda2056af48022706a297",
++        strip_prefix = "oneDNN-0.21.2",
+         urls = [
+-            "https://storage.googleapis.com/mirror.tensorflow.org/github.com/intel/mkl-dnn/archive/v0.21.2.tar.gz",
++            "https://storage.googleapis.com/mirror.tensorflow.org/github.com/intel/oneDNN/archive/v0.21.2.tar.gz",
+             "https://github.com/intel/mkl-dnn/archive/v0.21.2.tar.gz",
+         ],
+     )
+@@ -146,10 +146,10 @@
+     tf_http_archive(
+         name = "mkl_dnn_v1",
+         build_file = clean_dep("//third_party/mkl_dnn:mkldnn.BUILD"),
+-        sha256 = "fcc2d951f7170eade0cfdd0d8d1d58e3e7785bd326bca6555f3722f8cba71811",
+-        strip_prefix = "mkl-dnn-1.0-pc2",
++        sha256 = "7ea70b5ec4b1604d494dc28c83f2de62cfbf956c5043d10c853ee7193d0e33bd",
++        strip_prefix = "oneDNN-1.0-pc2",
+         urls = [
+-            "https://storage.googleapis.com/mirror.tensorflow.org/github.com/intel/mkl-dnn/archive/v1.0-pc2.tar.gz",
++            "https://storage.googleapis.com/mirror.tensorflow.org/github.com/intel/oneDNN/archive/v1.0-pc2.tar.gz",
+             "https://github.com/intel/mkl-dnn/archive/v1.0-pc2.tar.gz",
+         ],
+     )

@@ -74,13 +74,13 @@ let
   #};
 
   # Needed for _some_ system libraries, grep INCLUDEDIR.
-  includes_joined = symlinkJoin {
-    name = "tensorflow-deps-merged";
-    paths = [
-      pkgs.protobuf
-      jsoncpp
-    ];
-  };
+  #includes_joined = symlinkJoin {
+  #  name = "tensorflow-deps-merged";
+  #  paths = [
+  #    pkgs.protobuf
+  #    jsoncpp
+  #  ];
+  #};
 
   tfFeature = x: if x then "1" else "0";
 
@@ -109,7 +109,7 @@ let
 
   bazel-build = buildBazelPackage {
     name = "${pname}-${version}";
-    bazel = bazel; #bazel_0_29;
+    bazel = bazel; #bazel.overrideAttrs (oldAttrs: rec {version="2.0.0";}); #bazel_0_29;
 
     src = fetchFromGitHub {
       owner = "tensorflow";
@@ -122,7 +122,10 @@ let
       # Work around https://github.com/tensorflow/tensorflow/issues/24752
       ../no-saved-proto.patch
       # Fixes for NixOS jsoncpp
-      ../system-jsoncpp.patch
+      #../system-jsoncpp.patch
+      # Account for Intel's rebranding 
+      #../bazel_workspace.patch
+      #../protobuf_repo.patch
 
       (fetchpatch {
         name = "backport-pr-18950.patch";
@@ -163,8 +166,8 @@ let
       # grpc
       sqlite
       openssl
-      jsoncpp
-      pkgs.protobuf
+      #jsoncpp
+      #pkgs.protobuf
       curl
       snappy
       flatbuffers
@@ -196,26 +199,26 @@ let
       "absl_py"
       "astor_archive"
       "boringssl"
-      # Not packaged in nixpkgs
-      # "com_github_googleapis_googleapis"
-      # "com_github_googlecloudplatform_google_cloud_cpp"
-      "com_google_protobuf"
-      "com_googlesource_code_re2"
+    #  # Not packaged in nixpkgs
+    #  # "com_github_googleapis_googleapis"
+    #  # "com_github_googlecloudplatform_google_cloud_cpp"
+    #  "com_google_protobuf"
+    #  "com_googlesource_code_re2"
       "curl"
       "cython"
       "double_conversion"
       "flatbuffers"
-      "gast_archive"
-      # Lots of errors, requires an older version
-      # "grpc"
+    #  "gast_archive"
+    #  # Lots of errors, requires an older version
+    #  # "grpc"
       "hwloc"
       "icu"
       "jpeg"
-      "jsoncpp_git"
+    #  "jsoncpp_git"
       "keras_applications_archive"
       "lmdb"
-      "nasm"
-      # "nsync" # not packaged in nixpkgs
+    #  "nasm"
+    #  # "nsync" # not packaged in nixpkgs
       "opt_einsum_archive"
       "org_sqlite"
       "pasta"
@@ -228,13 +231,15 @@ let
       "zlib_archive"
     ];
 
-    INCLUDEDIR = "${includes_joined}/include";
+    INCLUDEDIR = "${rocmtoolkit_joined}/include";
 
     PYTHON_BIN_PATH = pythonEnv.interpreter;
 
     TF_NEED_GCP = true;
     TF_NEED_HDFS = true;
     #TF_ENABLE_XLA = 0; #tfFeature xlaSupport;
+    #USE_MKLDNN = tfFeature mklSupport;
+    TENSORFLOW_USE_MKLDNN_CONTRACTION_KERNEL = tfFeature mklSupport;
 
     CC_OPT_FLAGS = " ";
 
@@ -281,9 +286,12 @@ let
       # To avoid mixing Python 2 and Python 3
       unset PYTHONPATH
       sed -e 's|/opt/rocm|${rocmtoolkit_joined}|' -i ./third_party/gpus/rocm_configure.bzl
-      #bazel --batch --bazelrc=/dev/null version
+      #sed -e 's|REPOSITORY_NAME|repository_name()|' -i ./third_party/systemlibs/protobuf.bzl
+      #sed -e 's|PACKAGE_NAME|package_name()|' -i ./third_party/systemlibs/protobuf.bzl 
+      echo ${bazel.version}
       rm .bazelversion
       echo ${bazel.version} > .bazelversion
+      #bazel --batch --bazelrc=/dev/null version
     '';
 
     configurePhase = ''
@@ -297,26 +305,73 @@ let
 
     hardeningDisable = [ "format" ];
 
-    #bazelFlags = [
-    #  # temporary fixes to make the build work with bazel 0.27
-    #  #"--incompatible_no_support_tools_in_action_inputs=false"
-    #];
+    bazelFlags = [
+      # temporary fixes to make the build work with bazel 0.27
+      #"--incompatible_no_support_tools_in_action_inputs=false"
+      #"--keep_going=true"
+    ];
     bazelBuildFlags = [
       "--config=v2"
       "--config=opt" # optimize using the flags set in the configure phase
       #"--cxxopt=-std=c++11"
       "--config=rocm"
+      "--define=tensorflow_mkldnn_contraction_kernel=0"
     ]
     ++ lib.optionals (mklSupport) [ "--config=mkl" ];
 
     bazelTarget = "//tensorflow/tools/pip_package:build_pip_package //tensorflow/tools/lib_package:libtensorflow";
-
+ 
     fetchAttrs = {
       # So that checksums don't depend on these.
       TF_SYSTEM_LIBS = null;
 
-      # cudaSupport causes fetch of ncclArchive, resulting in different hashes
-      sha256 = "1sb5xbv99adrb38q8m8zlrjiwq68sfqfj63m0wy73c8j0sbajj74";
+      buildPhase = ''
+        runHook preBuild
+
+        copts=()
+        host_copts=()
+        for flag in $NIX_CFLAGS_COMPILE; do
+          copts+=( "--copt=$flag" )
+          host_copts+=( "--host_copt=$flag" )
+        done
+        for flag in $NIX_CXXSTDLIB_COMPILE; do
+          copts+=( "--copt=$flag" )
+          host_copts+=( "--host_copt=$flag" )
+        done
+        linkopts=()
+        host_linkopts=()
+        for flag in $NIX_LDFLAGS; do
+          linkopts+=( "--linkopt=-Wl,$flag" )
+          host_linkopts+=( "--host_linkopt=-Wl,$flag" )
+        done
+
+        # Bazel computes the default value of output_user_root before parsing the
+        # flag. The computation of the default value involves getting the $USER
+        # from the environment. I don't have that variable when building with
+        # sandbox enabled. Code here
+        # https://github.com/bazelbuild/bazel/blob/9323c57607d37f9c949b60e293b573584906da46/src/main/cpp/startup_options.cc#L123-L124
+        #
+        # On macOS Bazel will use the system installed Xcode or CLT toolchain instead of the one in the PATH unless we pass BAZEL_USE_CPP_ONLY_TOOLCHAIN
+        # We disable multithreading for the fetching phase since it can lead to timeouts with many dependencies/threads:
+        # https://github.com/bazelbuild/bazel/issues/6502
+        #BAZEL_USE_CPP_ONLY_TOOLCHAIN=1 \
+        USER=homeless-shelter \
+        bazel \
+          --output_base="$bazelOut" \
+          --output_user_root="$bazelUserRoot" \
+          build --build=false \
+          --loading_phase_threads=1 \
+          "''${copts[@]}" \
+          "''${host_copts[@]}" \
+          "''${linkopts[@]}" \
+          "''${host_linkopts[@]}" \
+          $bazelFlags \
+          $bazelFetchFlags \
+          $bazelTarget
+        runHook postBuild
+      '';
+      # Don't use sytem libs so this remains constant
+      sha256 = "1m35yis51hzs1y7gz4a53b646glx3lzyjv8zxhh5a31xlwq3dmb2";
     };
 
     buildAttrs = {
