@@ -1,5 +1,6 @@
 { stdenv, pkgs, bazel, buildBazelPackage, lib, fetchFromGitHub, fetchpatch, symlinkJoin
 , addOpenGLRunpath
+, runCommand, lndir
 # Python deps
 , buildPythonPackage, isPy3k, isPy27, pythonOlder, pythonAtLeast, python
 # Python libraries
@@ -32,7 +33,7 @@
 , config
 , hcc, hcc-unwrapped
 , hip, hipcub, miopen-hip, miopengemm
-, rocrand, rocprim, rocfft, rocblas, rocr, rccl, cxlactivitylogger
+, rocrand, rocprim, rocfft, rocblas, rocr, rccl, cxlactivitylogger, amd-clang
 }:
 
 #assert cudaSupport -> nvidia_x11 != null
@@ -45,12 +46,35 @@
 assert mklSupport -> mkl != null;
 
 let
-  rocmtoolkit_joined = symlinkJoin {
-    name = "unsplit_rocmtoolkit";
-    paths = [ hcc hcc-unwrapped
-              hip hipcub miopen-hip miopengemm
-              rocrand rocprim rocfft rocblas rocr rccl cxlactivitylogger ];
-  };
+  #rocmtoolkit_joined = symlinkJoin {
+  #  name = "unsplit_rocmtoolkit";
+  #  paths = [ 
+  #    hcc hcc-unwrapped
+  #    hip hipcub miopen-hip miopengemm
+  #    rocrand rocprim rocfft rocblas rocr rccl cxlactivitylogger 
+  #  ];
+  #};
+
+  rocmtoolkit_joined = runCommand "unsplit_rocmtoolkit" {} ''
+    mkdir -p $out
+    ln -s ${hcc} $out/hcc
+    ln -s ${hcc-unwrapped} $out/hcc-unwrapped
+    ln -s ${rocr} $out/hsa
+    ln -s ${hip} $out/hip
+    ln -s ${rocrand} $out/rocrand
+    ln -s ${rocfft} $out/rocfft
+    ln -s ${rocblas} $out/rocblas
+    ln -s ${miopen-hip} $out/miopen
+    ln -s ${miopengemm} $out/miopengemm
+    ln -s ${rccl} $out/rccl
+    ln -s ${hipcub} $out/hipcub
+    ln -s ${rocprim} $out/rocprim
+    ln -s ${cxlactivitylogger} $out/cxlactivitylogger
+    for i in ${rocr} ${hip} ${rocrand} ${rocfft} ${rocblas} ${miopen-hip} ${miopengemm} ${rccl} ${hipcub} ${rocprim} ${cxlactivitylogger} ${binutils.bintools} ${amd-clang}; do
+      ${lndir}/bin/lndir -silent $i $out
+    done
+    ln -s ${rocrand}/hiprand/include $out/include/hiprand
+  '';
 
   withTensorboard = pythonOlder "3.6";
 
@@ -248,8 +272,9 @@ let
 
     #TF_NEED_CUDA = tfFeature cudaSupport;
     #TF_CUDA_PATHS = lib.optionalString cudaSupport "${cudatoolkit_joined},${cudnn},${nccl}";
-    #GCC_HOST_COMPILER_PREFIX = lib.optionalString cudaSupport "${cudatoolkit_cc_joined}/bin";
-    #GCC_HOST_COMPILER_PATH = lib.optionalString cudaSupport "${cudatoolkit_cc_joined}/bin/gcc";
+    #LLVM_HOST_COMPILER_PREFIX = "${binutils}/bin";
+    #LLVM_HOST_COMPILER_PATH = "${binutils}/bin/gcc";
+    #LLVM_BINUTILS_INCDIR="${stdenv.lib.getDev binutils}/include";
     #TF_CUDA_COMPUTE_CAPABILITIES = lib.concatStringsSep "," cudaCapabilities;
 
     TF_NEED_ROCM = 1;
@@ -301,7 +326,7 @@ let
     '';
 
     # FIXME: Tensorflow uses dlopen() for CUDA libraries.
-    #NIX_LDFLAGS = lib.optionalString cudaSupport "-lcudart -lcublas -lcufft -lcurand -lcusolver -lcusparse -lcudnn";
+    NIX_LDFLAGS = "-lmcwamp";
 
     hardeningDisable = [ "format" ];
 
