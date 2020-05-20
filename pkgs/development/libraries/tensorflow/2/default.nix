@@ -33,7 +33,7 @@
 , config
 , hcc
 , hip, hipcub, miopen-hip, miopengemm
-, rocrand, rocprim, rocfft, rocblas, rocr, rccl, cxlactivitylogger, amd-clang
+, rocrand, rocprim, rocfft, rocblas, rocr, rccl, cxlactivitylogger, hip-clang, clang-unwrapped
 }:
 
 #assert cudaSupport -> nvidia_x11 != null
@@ -58,7 +58,7 @@ let
   rocmtoolkit_joined = runCommand "unsplit_rocmtoolkit" {} ''
     mkdir -p $out
     ln -s ${hcc} $out/hcc
-    ln -s ${rocr}/hsa $out/hsa
+    ln -s ${rocr} $out/hsa
     ln -s ${hip} $out/hip
     ln -s ${rocrand} $out/rocrand
     ln -s ${rocfft} $out/rocfft
@@ -69,11 +69,11 @@ let
     ln -s ${hipcub} $out/hipcub
     ln -s ${rocprim} $out/rocprim
     ln -s ${cxlactivitylogger} $out/cxlactivitylogger
-    ln -s ${amd-clang} $out/amd-clang
-    for i in ${hcc} ${rocr}/hsa ${hip} ${rocrand} ${rocfft} ${rocblas} ${miopen-hip} ${miopengemm} ${rccl} ${hipcub} ${rocprim} ${cxlactivitylogger} ${binutils.bintools} ${amd-clang}; do
+    ln -s ${hip-clang} $out/hip-clang
+    ln -s ${clang-unwrapped} $out/llvm
+    for i in ${hcc} ${rocr}/hsa ${hip} ${rocrand} ${rocfft} ${rocblas} ${miopen-hip} ${miopengemm} ${rccl} ${hipcub} ${rocprim} ${cxlactivitylogger} ${binutils.bintools} ${hip-clang} ${clang-unwrapped}; do
       ${lndir}/bin/lndir -silent $i $out
     done
-    #cp -rs ${rocr}/lib/* $out/include/
     ln -s ${rocrand}/hiprand/include $out/include/hiprand
   '';
 
@@ -151,6 +151,7 @@ let
       # Account for Intel's rebranding 
       #../bazel_workspace.patch
       #../protobuf_repo.patch
+      ../rocm_follow_symlinks.patch
 
       (fetchpatch {
         name = "backport-pr-18950.patch";
