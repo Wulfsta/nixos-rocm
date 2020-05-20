@@ -71,7 +71,7 @@ stdenv.mkDerivation rec {
 
   postInstall = ''
     mkdir -p $out/share
-    mv $out/lib/cmake $out/share/
+    ln -s $out/lib/cmake $out/share/
   '';
 
   setupHook = writeText "setupHook.sh" ''

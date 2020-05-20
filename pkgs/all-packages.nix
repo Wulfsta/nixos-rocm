@@ -473,9 +473,9 @@ with pkgs;
   };
 
   tensorflow2-rocm = python37Packages.callPackage ./development/libraries/tensorflow/2 {
-    inherit (self) hcc hcc-unwrapped miopen-hip miopengemm rocrand
-                   rocfft rocblas rocr rccl cxlactivitylogger;
+    inherit (self) hipcub miopen-hip miopengemm rocrand rocprim rocfft rocblas rocr rccl cxlactivitylogger amd-clang;
     hip = self.hip;
+    hcc = self.hcc-unwrapped;
     #bazel = bazel.overrideAttrs (oldAttrs: rec {
     #  version="2.0.0";
     #  src = fetchurl {

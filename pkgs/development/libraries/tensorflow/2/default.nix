@@ -31,7 +31,7 @@
 #, Foundation, Security
 # ROCm
 , config
-, hcc, hcc-unwrapped
+, hcc
 , hip, hipcub, miopen-hip, miopengemm
 , rocrand, rocprim, rocfft, rocblas, rocr, rccl, cxlactivitylogger, amd-clang
 }:
@@ -58,8 +58,7 @@ let
   rocmtoolkit_joined = runCommand "unsplit_rocmtoolkit" {} ''
     mkdir -p $out
     ln -s ${hcc} $out/hcc
-    ln -s ${hcc-unwrapped} $out/hcc-unwrapped
-    ln -s ${rocr} $out/hsa
+    ln -s ${rocr}/hsa $out/hsa
     ln -s ${hip} $out/hip
     ln -s ${rocrand} $out/rocrand
     ln -s ${rocfft} $out/rocfft
@@ -70,9 +69,11 @@ let
     ln -s ${hipcub} $out/hipcub
     ln -s ${rocprim} $out/rocprim
     ln -s ${cxlactivitylogger} $out/cxlactivitylogger
-    for i in ${rocr} ${hip} ${rocrand} ${rocfft} ${rocblas} ${miopen-hip} ${miopengemm} ${rccl} ${hipcub} ${rocprim} ${cxlactivitylogger} ${binutils.bintools} ${amd-clang}; do
+    ln -s ${amd-clang} $out/amd-clang
+    for i in ${hcc} ${rocr}/hsa ${hip} ${rocrand} ${rocfft} ${rocblas} ${miopen-hip} ${miopengemm} ${rccl} ${hipcub} ${rocprim} ${cxlactivitylogger} ${binutils.bintools} ${amd-clang}; do
       ${lndir}/bin/lndir -silent $i $out
     done
+    #cp -rs ${rocr}/lib/* $out/include/
     ln -s ${rocrand}/hiprand/include $out/include/hiprand
   '';
 
@@ -263,7 +264,7 @@ let
     TF_NEED_HDFS = true;
     #TF_ENABLE_XLA = 0; #tfFeature xlaSupport;
     #USE_MKLDNN = tfFeature mklSupport;
-    TENSORFLOW_USE_MKLDNN_CONTRACTION_KERNEL = tfFeature mklSupport;
+    #TENSORFLOW_USE_MKLDNN_CONTRACTION_KERNEL = tfFeature mklSupport;
 
     CC_OPT_FLAGS = " ";
 
@@ -278,11 +279,12 @@ let
     #TF_CUDA_COMPUTE_CAPABILITIES = lib.concatStringsSep "," cudaCapabilities;
 
     TF_NEED_ROCM = 1;
-    #ROCM_PATH = "${rocmtoolkit_joined}";
+    ROCM_PATH = "${rocmtoolkit_joined}";
     ROCM_VERSION = "3.3.0";
     #MIOPEN_VERSION = "";
     ROCM_TOOLKIT_PATH = "${rocmtoolkit_joined}";
     ROCM_AMDGPU_TARGETS = "${lib.strings.concatStringsSep "," (config.rocmTargets or ["gfx803" "gfx900" "gfx906"])}";
+    GCC_HOST_COMPILER_PREFIX = "${rocmtoolkit_joined}/bin";
 
     postPatch = ''
       # https://github.com/tensorflow/tensorflow/issues/20919
@@ -291,6 +293,12 @@ let
       # include security vulnerabilities. So we make it optional.
       # https://github.com/tensorflow/tensorflow/issues/20280#issuecomment-400230560
       sed -i '/tensorboard >=/d' tensorflow/tools/pip_package/setup.py
+      sed -e 's|/opt/rocm|${rocmtoolkit_joined}|' -i ./third_party/gpus/rocm_configure.bzl
+      echo ${bazel.version}
+      rm .bazelversion
+      echo ${bazel.version} > .bazelversion
+      #bazel --batch --bazelrc=/dev/null version
+      #bazel clean --expunge
     '';
 
     preConfigure = let
@@ -310,13 +318,6 @@ let
       mkdir -p "$PYTHON_LIB_PATH"
       # To avoid mixing Python 2 and Python 3
       unset PYTHONPATH
-      sed -e 's|/opt/rocm|${rocmtoolkit_joined}|' -i ./third_party/gpus/rocm_configure.bzl
-      #sed -e 's|REPOSITORY_NAME|repository_name()|' -i ./third_party/systemlibs/protobuf.bzl
-      #sed -e 's|PACKAGE_NAME|package_name()|' -i ./third_party/systemlibs/protobuf.bzl 
-      echo ${bazel.version}
-      rm .bazelversion
-      echo ${bazel.version} > .bazelversion
-      #bazel --batch --bazelrc=/dev/null version
     '';
 
     configurePhase = ''
@@ -326,7 +327,7 @@ let
     '';
 
     # FIXME: Tensorflow uses dlopen() for CUDA libraries.
-    NIX_LDFLAGS = "-lmcwamp";
+    #NIX_LDFLAGS = "-lmcwamp";
 
     hardeningDisable = [ "format" ];
 
@@ -340,7 +341,7 @@ let
       "--config=opt" # optimize using the flags set in the configure phase
       #"--cxxopt=-std=c++11"
       "--config=rocm"
-      "--define=tensorflow_mkldnn_contraction_kernel=0"
+      #"--define=tensorflow_mkldnn_contraction_kernel=0"
     ]
     ++ lib.optionals (mklSupport) [ "--config=mkl" ];
 
