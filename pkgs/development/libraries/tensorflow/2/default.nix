@@ -31,7 +31,7 @@
 #, Foundation, Security
 # ROCm
 , config
-, hcc
+, hcc, hcc-clang
 , hip, hipcub, miopen-hip, miopengemm
 , rocrand, rocprim, rocfft, rocblas, rocr, rccl, cxlactivitylogger, hip-clang, clang-unwrapped
 }:
@@ -58,7 +58,8 @@ let
   rocmtoolkit_joined = runCommand "unsplit_rocmtoolkit" {} ''
     mkdir -p $out
     ln -s ${hcc} $out/hcc
-    ln -s ${rocr} $out/hsa
+    ln -s ${hcc-clang} $out/hcc-clang
+    ln -s ${rocr}/hsa $out/hsa
     ln -s ${hip} $out/hip
     ln -s ${rocrand} $out/rocrand
     ln -s ${rocfft} $out/rocfft
@@ -71,7 +72,7 @@ let
     ln -s ${cxlactivitylogger} $out/cxlactivitylogger
     ln -s ${hip-clang} $out/hip-clang
     ln -s ${clang-unwrapped} $out/llvm
-    for i in ${hcc} ${rocr}/hsa ${hip} ${rocrand} ${rocfft} ${rocblas} ${miopen-hip} ${miopengemm} ${rccl} ${hipcub} ${rocprim} ${cxlactivitylogger} ${binutils.bintools} ${hip-clang} ${clang-unwrapped}; do
+    for i in ${hcc} ${hcc-clang} ${rocr}/hsa ${hip} ${rocrand} ${rocfft} ${rocblas} ${miopen-hip} ${miopengemm} ${rccl} ${hipcub} ${rocprim} ${cxlactivitylogger} ${binutils.bintools} ${hip-clang} ${clang-unwrapped}; do
       ${lndir}/bin/lndir -silent $i $out
     done
     ln -s ${rocrand}/hiprand/include $out/include/hiprand
@@ -295,6 +296,7 @@ let
       # https://github.com/tensorflow/tensorflow/issues/20280#issuecomment-400230560
       sed -i '/tensorboard >=/d' tensorflow/tools/pip_package/setup.py
       sed -e 's|/opt/rocm|${rocmtoolkit_joined}|' -i ./third_party/gpus/rocm_configure.bzl
+      sed -e "s|nixos sed target|inc_dirs = [ $(find -L ${rocmtoolkit_joined} -type d -printf '"%h/%f", ')]|" -i ./third_party/gpus/rocm_configure.bzl
       echo ${bazel.version}
       rm .bazelversion
       echo ${bazel.version} > .bazelversion

@@ -476,6 +476,7 @@ with pkgs;
     inherit (self) hipcub miopen-hip miopengemm rocrand rocprim rocfft rocblas rocr rccl cxlactivitylogger hip-clang;
     hip = self.hip;
     hcc = self.hcc-unwrapped;
+    hcc-clang = self.hcc-clang-unwrapped;
     clang-unwrapped = pkgs.llvmPackages_10.clang-unwrapped;
     #bazel = bazel.overrideAttrs (oldAttrs: rec {
     #  version="2.0.0";
