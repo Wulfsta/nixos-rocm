@@ -30,9 +30,9 @@ stdenv.mkDerivation rec {
 
   fixupPhase = ''
     rm -r $out/lib $out/include
-    #mv $out/hsa/lib $out/hsa/include $out
-    ln -s $out/hsa/lib $out/lib
-    ln -s $out/hsa/include $out/include
-    cp -rs $out/hsa/include/hsa/* $out/include
+    mv $out/hsa/lib $out/hsa/include $out
+    ln -s $out/lib $out/hsa/lib
+    ln -s $out/include $out/hsa/include
+    #cp -rs $out/hsa/include/hsa/* $out/include
   '';
 }

@@ -31,9 +31,9 @@
 #, Foundation, Security
 # ROCm
 , config
-, hcc, hcc-clang
+, hcc, hcc-clang, hcc-clang-unwrapped
 , hip, hipcub, miopen-hip, miopengemm
-, rocrand, rocprim, rocfft, rocblas, rocr, rccl, cxlactivitylogger, hip-clang, clang-unwrapped
+, rocrand, rocprim, rocfft, rocblas, rocr, rccl, cxlactivitylogger, hip-clang
 }:
 
 #assert cudaSupport -> nvidia_x11 != null
@@ -59,6 +59,7 @@ let
     mkdir -p $out
     ln -s ${hcc} $out/hcc
     ln -s ${hcc-clang} $out/hcc-clang
+    ln -s ${hcc-clang-unwrapped} $out/hcc-clang-unwrapped
     ln -s ${rocr}/hsa $out/hsa
     ln -s ${hip} $out/hip
     ln -s ${rocrand} $out/rocrand
@@ -71,8 +72,7 @@ let
     ln -s ${rocprim} $out/rocprim
     ln -s ${cxlactivitylogger} $out/cxlactivitylogger
     ln -s ${hip-clang} $out/hip-clang
-    ln -s ${clang-unwrapped} $out/llvm
-    for i in ${hcc} ${hcc-clang} ${rocr}/hsa ${hip} ${rocrand} ${rocfft} ${rocblas} ${miopen-hip} ${miopengemm} ${rccl} ${hipcub} ${rocprim} ${cxlactivitylogger} ${binutils.bintools} ${hip-clang} ${clang-unwrapped}; do
+    for i in ${hcc} ${hcc-clang} ${rocr} ${rocr}/hsa ${hip} ${rocrand} ${rocfft} ${rocblas} ${miopen-hip} ${miopengemm} ${rccl} ${hipcub} ${rocprim} ${cxlactivitylogger} ${binutils.bintools} ${hip-clang}; do
       ${lndir}/bin/lndir -silent $i $out
     done
     ln -s ${rocrand}/hiprand/include $out/include/hiprand
@@ -205,6 +205,11 @@ let
       giflib
       re2
       pkgs.lmdb
+
+      #ROCm
+      hcc hcc-clang
+      hip hipcub miopen-hip miopengemm
+      rocrand rocprim rocfft rocblas rocr rccl cxlactivitylogger hip-clang
     #] ++ lib.optionals cudaSupport [
     #  cudatoolkit
     #  cudnn
@@ -296,7 +301,7 @@ let
       # https://github.com/tensorflow/tensorflow/issues/20280#issuecomment-400230560
       sed -i '/tensorboard >=/d' tensorflow/tools/pip_package/setup.py
       sed -e 's|/opt/rocm|${rocmtoolkit_joined}|' -i ./third_party/gpus/rocm_configure.bzl
-      sed -e "s|nixos sed target|inc_dirs = [ $(find -L ${rocmtoolkit_joined} -type d -printf '"%h/%f", ')]|" -i ./third_party/gpus/rocm_configure.bzl
+      sed -e "s|nixos sed target|[ \"$(dirname $(find -L ${rocmtoolkit_joined} -type f,l -exec realpath {} \;) | sort -u | sed ':a;N;$!ba;s/\n/", "/g')\" ]|" -i ./third_party/gpus/rocm_configure.bzl
       echo ${bazel.version}
       rm .bazelversion
       echo ${bazel.version} > .bazelversion

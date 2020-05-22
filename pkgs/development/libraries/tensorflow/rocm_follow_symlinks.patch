@@ -1,7 +1,7 @@
 diff --exclude '*~' -ruN a/third_party/gpus/rocm_configure.bzl b/third_party/gpus/rocm_configure.bzl      
 --- a/third_party/gpus/rocm_configure.bzl
 +++ b/third_party/gpus/rocm_configure.bzl
-@@ -186,58 +186,61 @@
+@@ -186,58 +186,60 @@
        host compiler include directories, which can be added to the CROSSTOOL
        file.
      """
@@ -82,9 +82,8 @@ diff --exclude '*~' -ruN a/third_party/gpus/rocm_configure.bzl b/third_party/gpu
 +    #inc_dirs.append("/opt/rocm/hcc/lib/clang/10.0.0/include")
  
 -    return inc_dirs
-+    nixos sed target
-+
-+    return [str(repository_ctx.path(spath).realpath) for spath in inc_dirs]
++    #return [str(repository_ctx.path(spath).realpath) for spath in inc_dirs]
++    return nixos sed target
  
  def _enable_rocm(repository_ctx):
      if "TF_NEED_ROCM" in repository_ctx.os.environ:
