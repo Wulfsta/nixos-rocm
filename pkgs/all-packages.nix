@@ -184,7 +184,8 @@ with pkgs;
     cc = self.hcc-clang-unwrapped;
     extraPackages = [ libstdcxxHook self.hcc-unwrapped ];
     extraBuildCommands = ''
-      echo "-resource-dir=${self.hcc-clang}/resource-root" >> $out/nix-support/cc-cflags
+      ln -s ${self.hcc-clang}/resource-root $out/resource-root
+      echo "-resource-dir=$out/resource-root" >> $out/nix-support/cc-cflags
       echo "--gcc-toolchain=${stdenv.cc.cc}" >> $out/nix-support/cc-cflags
       ln -s $out/bin/clang++ $out/bin/hcc
       for f in $(find ${self.hcc-unwrapped}/bin); do
