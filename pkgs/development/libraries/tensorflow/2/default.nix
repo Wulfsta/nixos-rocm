@@ -31,7 +31,7 @@
 #, Foundation, Security
 # ROCm
 , config
-, hcc, hcc-clang, hcc-clang-unwrapped
+, hcc, hcc-unwrapped, hcc-clang, hcc-clang-unwrapped
 , hip, hipcub, miopen-hip, miopengemm
 , rocrand, rocprim, rocfft, rocblas, rocr, rccl, cxlactivitylogger, hip-clang
 }:
@@ -58,6 +58,7 @@ let
   rocmtoolkit_joined = runCommand "unsplit_rocmtoolkit" {} ''
     mkdir -p $out
     ln -s ${hcc} $out/hcc
+    ln -s ${hcc-unwrapped} $out/hcc-unwrapped
     ln -s ${hcc-clang} $out/hcc-clang
     ln -s ${hcc-clang-unwrapped} $out/hcc-clang-unwrapped
     ln -s ${rocr}/hsa $out/hsa
@@ -72,7 +73,7 @@ let
     ln -s ${rocprim} $out/rocprim
     ln -s ${cxlactivitylogger} $out/cxlactivitylogger
     ln -s ${hip-clang} $out/hip-clang
-    for i in ${hcc} ${hcc-clang} ${rocr} ${rocr}/hsa ${hip} ${rocrand} ${rocfft} ${rocblas} ${miopen-hip} ${miopengemm} ${rccl} ${hipcub} ${rocprim} ${cxlactivitylogger} ${binutils.bintools} ${hip-clang}; do
+    for i in ${hcc} ${hcc-unwrapped} ${hcc-clang} ${hcc-clang-unwrapped} ${rocr}/hsa ${hip} ${rocrand} ${rocfft} ${rocblas} ${miopen-hip} ${miopengemm} ${rccl} ${hipcub} ${rocprim} ${cxlactivitylogger} ${binutils.bintools} ${hip-clang}; do
       ${lndir}/bin/lndir -silent $i $out
     done
     ln -s ${rocrand}/hiprand/include $out/include/hiprand
