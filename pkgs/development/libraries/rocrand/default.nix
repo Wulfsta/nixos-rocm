@@ -1,27 +1,29 @@
-{ stdenv, fetchFromGitHub, cmake, ed, pkgconfig
-, libunwind, git, rocm-cmake, rocminfo, hcc, hip, rocr, comgr
+{ stdenv, lib, fetchFromGitHub, cmake, ed, pkgconfig
+, libunwind, git, rocm-cmake, rocminfo, hip, rocr, comgr
+, defaultTargets
 , doCheck ? false
 , gtest }:
 stdenv.mkDerivation rec {
   name = "rocrand";
-  version = "3.3.0";
+  version = "3.5.0";
   src = fetchFromGitHub {
     owner = "ROCmSoftwarePlatform";
     repo = "rocRAND";
     rev = "rocm-${version}";
-    sha256 = "0nbrzpjp87v6p91jzxgxr12q2zzqw33m6cmwhckwiv8c076cfkgy";
+    sha256 = "1pa8703xhf9fx2y9xz5bj31xckaqg9fgaw25q0n4qs8qyfiqcdhp";
   };
   nativeBuildInputs = [ cmake ed git rocm-cmake pkgconfig ];
-  buildInputs = [ hcc hip rocminfo libunwind rocr comgr ]
+  buildInputs = [ hip rocminfo libunwind rocr comgr ]
     ++ stdenv.lib.optionals doCheck [ gtest ];
 
   cmakeFlags = [
     "-DHSA_HEADER=${rocr}/include"
     "-DHSA_LIBRARY=${rocr}/lib/libhsa-runtime64.so"
-    "-DHIP_PLATFORM=hcc"
+    "-DHIP_PLATFORM=rocclr"
     "-DHIP_PATH=${hip}"
     "-DCMAKE_CXX_COMPILER=${hip}/bin/hipcc"
     "-DCMAKE_INSTALL_INCLUDEDIR=include"
+    "-DAMDGPU_TARGETS=${lib.strings.concatStringsSep ";" defaultTargets}"
   ] ++ (let flag = if doCheck then "ON" else "OFF";
         in [ "-DBUILD_TEST=${flag} -DBUILD_BENCHMARK=${flag}" ]);
   postInstall = ''
