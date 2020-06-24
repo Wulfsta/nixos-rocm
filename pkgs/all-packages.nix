@@ -180,6 +180,7 @@ with pkgs;
                    clang-ocl miopengemm rocblas;
     hip = self.hip-clang;
     clang = self.rocm-clang;
+    clang-unwrapped = self.rocm-clang-unwrapped;
     comgr = self.rocm-comgr;
   };
 
