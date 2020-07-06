@@ -59,7 +59,6 @@ with pkgs;
   };
   rocm-clang = pkgs.wrapCCWith rec {
     cc = self.rocm-clang-unwrapped;
-    extraPackages = [ libstdcxxHook ];
     extraBuildCommands = ''
       rsrc="$out/resource-root"
       mkdir "$rsrc"
