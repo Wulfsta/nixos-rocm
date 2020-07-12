@@ -286,11 +286,11 @@ with pkgs;
   #   };
   # };
 
-  # tensorflow2-rocm = self.tf2PyPackages.pkgs.callPackage ./development/libraries/tensorflow/bin2.nix {
-  #   inherit (self) hcc hcc-unwrapped miopen-hip miopengemm rocrand
-  #                  rocfft rocblas rocr rccl cxlactivitylogger;
-  #   hip = self.hip;
-  # };
+  tensorflow2-rocm-source = python37Packages.callPackage ./development/libraries/tensorflow/source/2 {
+    inherit (self) hipcub miopen-hip miopengemm 
+                   rocrand rocprim rocfft rocblas rocr rccl cxlactivitylogger;
+    hip = self.hip-clang;
+  };
 
   # pytorch-rocm = python37Packages.callPackage ./development/libraries/pytorch/default.nix {
   #   inherit (self) rocr miopengemm rocsparse hipsparse rocthrust

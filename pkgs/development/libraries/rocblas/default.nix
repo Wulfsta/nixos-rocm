@@ -15,7 +15,7 @@ stdenv.mkDerivation rec {
     owner = "ROCmSoftwarePlatform";
     repo = "rocBLAS";
     rev = "rocm-${version}";
-    sha256 = "13rbdd49byrddmahn4ac90nw0anpbgj547y651zf8hdpnhh4n7wp";
+    sha256 = "11a9xlsscg7lh0bylhr650kslarsyzkmy3794l509mwx2xyq5zgc";
   };
   nativeBuildInputs = [ cmake rocm-cmake pkgconfig python ];
 

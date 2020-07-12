@@ -7,7 +7,7 @@ buildPythonPackage rec {
     owner = "ROCmSoftwarePlatform";
     repo = "Tensile";
     rev = "rocm-${version}";
-    sha256 = "1pfkh64vrhykffv73p55kkiq9m2yqmi2i08bm0gzybbkny1aqpph";
+    sha256 = "12s8mgfjqlhpjbhfddvnr0jgbps176qzf4r7jlk91fhr7wj8fifb";
   };
   buildInputs = [ pyyaml pytest ];
 
