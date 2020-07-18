@@ -13,7 +13,7 @@
 , git, swig, which, binutils, glibcLocales, cython
 # Common libraries
 , jemalloc, openmpi, astor, gast, grpc, sqlite, openssl, jsoncpp, re2
-, curl, snappy, flatbuffers, icu, double-conversion, libpng, libjpeg, giflib
+, curl, snappy, flatbuffers, icu, double-conversion, libpng, libjpeg_turbo, giflib
 # Upsteam by default includes cuda support since tensorflow 1.15. We could do
 # that in nix as well. It would make some things easier and less confusing, but
 # it would also make the default tensorflow package unfree. See
@@ -32,8 +32,8 @@
 # ROCm
 , config
 , hip
-, hipcub, miopen-hip, miopengemm
-, rocrand, rocprim, rocfft, rocblas, rocr, rccl, cxlactivitylogger
+, hipcub, hipsparse, miopen-hip, miopengemm
+, rocrand, rocprim, rocfft, rocblas, rocr, rccl, roctracer, cxlactivitylogger
 }:
 
 #assert cudaSupport -> nvidia_x11 != null
@@ -58,7 +58,8 @@ let
   rocmtoolkit_joined = runCommand "unsplit_rocmtoolkit" {} ''
     mkdir -p $out 
     ln -s ${hip} $out/hip
-    ln -s ${rocrand} $out/rocrand
+    ln -s ${hipsparse} $out/hipsparse
+    ln -s ${rocrand}/hiprand $out/hiprand
     ln -s ${rocfft} $out/rocfft
     ln -s ${rocblas} $out/rocblas
     ln -s ${miopen-hip} $out/miopen
@@ -67,8 +68,9 @@ let
     ln -s ${hipcub} $out/hipcub
     ln -s ${rocprim} $out/rocprim
     ln -s ${rocr} $out/hsa
+    ln -s ${roctracer} $out/roctracer
     ln -s ${cxlactivitylogger} $out/cxlactivitylogger
-    for i in ${hip} ${rocrand} ${rocfft} ${rocblas} ${miopen-hip} ${miopengemm} ${rccl} ${hipcub} ${rocprim} ${rocr} ${cxlactivitylogger} ${binutils.bintools}; do
+    for i in ${hip} ${hipsparse} ${rocrand}/hiprand ${rocfft} ${rocblas} ${miopen-hip} ${miopengemm} ${rccl} ${hipcub} ${rocprim} ${rocr} ${roctracer} ${cxlactivitylogger} ${binutils.bintools}; do
       ${lndir}/bin/lndir -silent $i $out
     done
     ln -s ${rocrand}/hiprand/include $out/include/hiprand
@@ -106,7 +108,7 @@ let
 
   tfFeature = x: if x then "1" else "0";
 
-  version = "2.2.0";
+  version = "760bec08ba01c374b44015493b975c6d52beb324"; #"2.2.0";
   variant = "-rocm";
   pname = "tensorflow${variant}";
 
@@ -132,17 +134,23 @@ let
   bazel-build = buildBazelPackage {
     name = "${pname}-${version}";
     bazel = bazel; #bazel.overrideAttrs (oldAttrs: rec {version="2.0.0";}); #bazel_0_29;
+    removeRulesCC = false;
 
-    src = fetchFromGitHub {
-      owner = "tensorflow";
-      repo = "tensorflow";
-      rev = "v${version}";
-      sha256 = "1g79xi8yl4sjia8ysk9b7xfzrz83zy28v5dlb2wzmcf0k5pmz60p";
+    #src = fetchFromGitHub {
+    #  owner = "ROCmSoftwarePlatform";
+    #  repo = "tensorflow-upstream";
+    #  rev = "${version}";
+    #  sha256 = "1g79xi8yl4sjia8ysk9b7xfzrz83zy28v5dlb2wzmcf0k5pmz60p";
+    #};
+
+    src = fetchGit {
+      url = "https://github.com/ROCmSoftwarePlatform/tensorflow-upstream";
+      rev = "${version}";
     };
 
     patches = [
       # Work around https://github.com/tensorflow/tensorflow/issues/24752
-      ../no-saved-proto.patch
+      #../no-saved-proto.patch
       # Fixes for NixOS jsoncpp
       ../system-jsoncpp.patch
       # Account for Intel's rebranding 
@@ -150,21 +158,21 @@ let
       #../protobuf_repo.patch
       ../rocm_follow_symlinks.patch
 
-      (fetchpatch {
-        name = "backport-pr-18950.patch";
-        url = "https://github.com/tensorflow/tensorflow/commit/73640aaec2ab0234d9fff138e3c9833695570c0a.patch";
-        sha256 = "1n9ypbrx36fc1kc9cz5b3p9qhg15xxhq4nz6ap3hwqba535nakfz";
-      })
+      #(fetchpatch {
+      #  name = "backport-pr-18950.patch";
+      #  url = "https://github.com/tensorflow/tensorflow/commit/73640aaec2ab0234d9fff138e3c9833695570c0a.patch";
+      #  sha256 = "1n9ypbrx36fc1kc9cz5b3p9qhg15xxhq4nz6ap3hwqba535nakfz";
+      #})
 
-      (fetchpatch {
-        # Don't try to fetch things that don't exist
-        name = "prune-missing-deps.patch";
-        url = "https://github.com/tensorflow/tensorflow/commit/b39b1ed24b4814db27d2f748dc85c10730ae851d.patch";
-        sha256 = "1skysz53nancvw1slij6s7flar2kv3gngnsq60ff4lap88kx5s6c";
-        excludes = [ "tensorflow/cc/saved_model/BUILD" ];
-      })
+      #(fetchpatch {
+      #  # Don't try to fetch things that don't exist
+      #  name = "prune-missing-deps.patch";
+      #  url = "https://github.com/tensorflow/tensorflow/commit/b39b1ed24b4814db27d2f748dc85c10730ae851d.patch";
+      #  sha256 = "1skysz53nancvw1slij6s7flar2kv3gngnsq60ff4lap88kx5s6c";
+      #  excludes = [ "tensorflow/cc/saved_model/BUILD" ];
+      #})
 
-      ./lift-gast-restriction.patch
+      #./lift-gast-restriction.patch
 
       # cuda 10.2 does not have "-bin2c-path" option anymore
       # https://github.com/tensorflow/tensorflow/issues/34429
@@ -197,14 +205,15 @@ let
       icu
       double-conversion
       libpng
-      libjpeg
+      libjpeg_turbo
       giflib
       re2
       pkgs.lmdb
 
       #ROCm
-      hip hipcub miopen-hip miopengemm
-      rocrand rocprim rocfft rocblas rocr rccl cxlactivitylogger
+      hip 
+      hipcub hipsparse miopen-hip miopengemm
+      rocrand rocprim rocfft rocblas rocr rccl roctracer cxlactivitylogger
     #] ++ lib.optionals cudaSupport [
     #  cudatoolkit
     #  cudnn
@@ -240,9 +249,8 @@ let
     #  # "grpc"
       "hwloc"
       "icu"
-      "jpeg"
+      "libjpeg_turbo"
       "jsoncpp_git"
-      "keras_applications_archive"
       "lmdb"
       "nasm"
     #  # "nsync" # not packaged in nixpkgs
@@ -255,7 +263,7 @@ let
       "swig"
       "termcolor_archive"
       "wrapt"
-      "zlib_archive"
+    #  "zlib_archive"
     ];
 
     INCLUDEDIR = "${includes_joined}/include";
@@ -282,10 +290,10 @@ let
 
     TF_NEED_ROCM = 1;
     ROCM_PATH = "${rocmtoolkit_joined}";
-    ROCM_VERSION = "3.5.0";
-    #MIOPEN_VERSION = "";
+    TF_ROCM_VERSION = "3.5.0";
+    #TF_MIOPEN_VERSION = "${miopen.version}";
     ROCM_TOOLKIT_PATH = "${rocmtoolkit_joined}";
-    ROCM_AMDGPU_TARGETS = "${lib.strings.concatStringsSep "," (config.rocmTargets or ["gfx803" "gfx900" "gfx906"])}";
+    TF_ROCM_AMDGPU_TARGETS = "${lib.strings.concatStringsSep "," (config.rocmTargets or ["gfx803" "gfx900" "gfx906"])}";
     GCC_HOST_COMPILER_PREFIX = "${rocmtoolkit_joined}/bin";
 
     postPatch = ''
@@ -295,7 +303,8 @@ let
       # include security vulnerabilities. So we make it optional.
       # https://github.com/tensorflow/tensorflow/issues/20280#issuecomment-400230560
       sed -i '/tensorboard >=/d' tensorflow/tools/pip_package/setup.py
-      sed -e 's|/opt/rocm|${rocmtoolkit_joined}|' -i ./third_party/gpus/rocm_configure.bzl
+      # it appears this is no longer needed
+      #sed -e 's|/opt/rocm|${rocmtoolkit_joined}|' -i ./third_party/gpus/rocm_configure.bzl
       # hack to include all hcc compiler bits 
       #printf -v allpossibledirs '%s\n' "$(dirname $(find -L ${rocmtoolkit_joined} -type f,l -exec realpath {} \;))" "$(find -L /nix/store -wholename '*hcc-clang-unwrapped-wrapper*' -type d)"
       printf -v allpossibledirs '%s\n' "$(dirname $(find -L ${rocmtoolkit_joined} -type f,l -exec realpath {} \;))"
@@ -305,7 +314,7 @@ let
       rm .bazelversion
       echo ${bazel.version} > .bazelversion
       #bazel --batch --bazelrc=/dev/null version
-      #bazel clean --expunge
+      bazel clean --expunge
     '';
 
     preConfigure = let
@@ -385,7 +394,7 @@ let
         # On macOS Bazel will use the system installed Xcode or CLT toolchain instead of the one in the PATH unless we pass BAZEL_USE_CPP_ONLY_TOOLCHAIN
         # We disable multithreading for the fetching phase since it can lead to timeouts with many dependencies/threads:
         # https://github.com/bazelbuild/bazel/issues/6502
-        #BAZEL_USE_CPP_ONLY_TOOLCHAIN=1 \
+        BAZEL_USE_CPP_ONLY_TOOLCHAIN=1 \
         USER=homeless-shelter \
         bazel \
           --output_base="$bazelOut" \
@@ -401,8 +410,44 @@ let
           $bazelTarget
         runHook postBuild
       '';
+
+      installPhase = ''
+        runHook preInstall
+        # Remove all built in external workspaces, Bazel will recreate them when building
+        #rm -rf $bazelOut/external/{bazel_tools,\@bazel_tools.marker}
+        #{if removeRulesCC then "rm -rf $bazelOut/external/{rules_cc,\\@rules_cc.marker}" else ""}
+        #rm -rf $bazelOut/external/{embedded_jdk,\@embedded_jdk.marker}
+        #{if removeLocalConfigCc then "rm -rf $bazelOut/external/{local_config_cc,\@local_config_cc.marker}" else ""}
+        #rm -rf $bazelOut/external/{local_config_cc,\@local_config_cc.marker}
+        #{if removeLocal then "rm -rf $bazelOut/external/{local_*,\@local_*.marker}" else ""}
+        #rm -rf $bazelOut/external/{local_*,\@local_*.marker}
+        # Clear markers
+        find $bazelOut/external -name '@*\.marker' -exec sh -c 'echo > {}' \;
+        # Remove all vcs files
+        rm -rf $(find $bazelOut/external -type d -name .git)
+        rm -rf $(find $bazelOut/external -type d -name .svn)
+        rm -rf $(find $bazelOut/external -type d -name .hg)
+        # Removing top-level symlinks along with their markers.
+        # This is needed because they sometimes point to temporary paths (?).
+        # For example, in Tensorflow-gpu build:
+        # platforms -> NIX_BUILD_TOP/tmp/install/35282f5123611afa742331368e9ae529/_embedded_binaries/platforms
+        find $bazelOut/external -maxdepth 1 -type l | while read symlink; do
+          name="$(basename "$symlink")"
+          rm "$symlink" "$bazelOut/external/@$name.marker"
+        done
+        # Patching symlinks to remove build directory reference
+        find $bazelOut/external -type l | while read symlink; do
+          new_target="$(readlink "$symlink" | sed "s,$NIX_BUILD_TOP,NIX_BUILD_TOP,")"
+          rm "$symlink"
+          ln -sf "$new_target" "$symlink"
+        done
+        echo '${bazel.name}' > $bazelOut/external/.nix-bazel-version
+        (cd $bazelOut/ && tar czf $out --sort=name --mtime='@1' --owner=0 --group=0 --numeric-owner external/)
+        runHook postInstall
+      '';
+
       # Don't use sytem libs so this remains constant
-      sha256 = "02qkzza6bpf63inci44qy0jamz5q17s6cqyrlcf69a20yjgmx3fb";
+      sha256 = "0kizmfvpyi8g01kjsh84p99h46pg0nrcsfzd3f87642d6nrphapk";
     };
 
     buildAttrs = {

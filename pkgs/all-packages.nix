@@ -241,11 +241,11 @@ with pkgs;
     comgr = self.rocm-comgr;
   };
 
-  # roctracer = callPackage ./development/tools/roctracer {
-  #   inherit (self) hcc-unwrapped roct rocr;
-  #   hip = self.hip;
-  #   inherit (pkgs.pythonPackages) python buildPythonPackage fetchPypi ply;
-  # };
+  roctracer = callPackage ./development/tools/roctracer {
+    inherit (self) roct rocr;
+    hip = self.hip-clang;
+    inherit (pkgs.python37Packages) python buildPythonPackage fetchPypi ply;
+  };
 
   # rocprofiler = callPackage ./development/tools/rocprofiler {
   #   inherit (self) rocr roct roctracer hcc-unwrapped;
@@ -287,8 +287,8 @@ with pkgs;
   # };
 
   tensorflow2-rocm-source = python37Packages.callPackage ./development/libraries/tensorflow/source/2 {
-    inherit (self) hipcub miopen-hip miopengemm 
-                   rocrand rocprim rocfft rocblas rocr rccl cxlactivitylogger;
+    inherit (self) hipcub hipsparse miopen-hip miopengemm 
+                   rocrand rocprim rocfft rocblas rocr rccl roctracer cxlactivitylogger;
     hip = self.hip-clang;
   };
 
